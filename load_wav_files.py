@@ -1,4 +1,5 @@
 import random
+
 import numpy as np
 import scipy.io.wavfile as wav
 import os
@@ -6,7 +7,7 @@ import re
 import hashlib
 import math
 
-import speech_features.audio_processing as psf
+import python_speech_features as psf
 
 from tensorflow.python.platform import gfile
 from tensorflow.python.util import compat
@@ -14,6 +15,13 @@ from tensorflow.python.util import compat
 MAX_NUM_WAVS_PER_CLASS = 2**27 - 1  # ~134M
 
 random.seed(1181349 + 1179018)
+
+total_words_list = ["yes", "no", "up", "down", "left", "right", "on", "off", "stop", "go", "zero", "one", "two", "three", "four", "five", "six", "seven", "eight", "nine", "bed", "bird", "cat", "dog", "happy", "house", "marvin", "sheila", "tree", "wow", "_silence_"]
+    
+#total_words_dict = dict(enumerate(total_words_list))
+
+total_words_dict = {total_words_list[x]: x for x in range(len(total_words_list))}
+
 
 def which_set(filename, validation_percentage, testing_percentage):
   """Determines which data partition the file should belong to.
@@ -75,12 +83,13 @@ def load_dataset(data_dir, word_list, noise_percentage, dataset):
         return load_test_dataset(data_dir, word_list)
 
 def load_train_dataset(data_dir, word_list, silence_percentage, noise_percentage):
-    """ Carico il data set e lo salvo dopo avelo modificato un po' perché
-    altrimenti è troppo bello così lo sporco un po'
+    """ Carico il data set e lo salvo dopo avelo modificato un po perche
+    altrimenti is troppo bello cosi lo sporco un p
 
     Ogni dato a viene caricato"""
     validation_percentage, testing_percentage = 0, 0.1
-    X_train = []
+    temp_list = []
+    
     #wav_lists = os.path.join(data_dir, *, '*.wav')
     for word_l in word_list:
         #wav_word_list = os.path.join(data_dir, word_l)
@@ -92,20 +101,27 @@ def load_train_dataset(data_dir, word_list, silence_percentage, noise_percentage
             if which_set(file, validation_percentage, testing_percentage) == 'training':
                 rate, signal = load_wav(file);
                 signal_and_noise = add_noise(signal, rate, 1, os.path.join(data_dir,'_background_noise_'), noise_percentage)
-                feature, _ = psf.mel_fbank(signal_and_noise, rate, nfilt = 40, winfunc = np.hamming)
+                feature, _ = psf.fbank(signal_and_noise, rate, nfilt = 40, winfunc = np.hamming)
                 #if feature.shape[0] != 99:
                 #    print(str(len(signal)) + "                 " + str(rate))
-                X_train.append({'feature': feature, 'label': word_l})
+                temp_list.append({'feature': feature, 'label': word_l})
 
     # hotspot
     #silence = len(X_train) * silence_percentage
-    silence = int(math.ceil(len(X_train) * silence_percentage / 100))
+    silence = int(math.ceil(len(temp_list) * silence_percentage / 100))
     for _ in range(silence):
-        X_train.append({'feature': 0, 'label': "_silence_"})
+        temp_list.append({'feature': 0, 'label': "_silence_"})
 
-    random.shuffle(X_train)
+    random.shuffle(temp_list)
 
-    return X_train
+    X_train = np.zeros((len(temp_list), 99, 40))
+    Y_train = np.zeros( len(temp_list) )
+    
+    for i in range(len(X_train)):
+        X_train[i] = temp_list[i]['feature']
+        Y_train[i] = word2index(temp_list[i]['label'])
+    
+    return X_train, Y_train
 
 def load_test_dataset(data_dir, word_list):
     searchfile = open(os.path.join(data_dir,"testing_list.txt"), "r")
@@ -114,7 +130,7 @@ def load_test_dataset(data_dir, word_list):
         for line in searchfile:
             if word in line:
                 rate, signal = load_wav(os.path.join(data_dir,line[:-1]))
-                feature, _ = psf.mel_fbank(signal, rate, nfilt = 40, winfunc = np.hamming)
+                feature, _ = psf.fbank(signal, rate, nfilt = 40, winfunc = np.hamming)
                 X_test.append({'feature': feature, 'label': word})
 
     searchfile.close()
@@ -137,4 +153,14 @@ def add_noise(signal, rate, len_sec, noise_dir, noise_percentage):
     return signal_and_noise
 
 def add_time_shift():
-    return
+    return 
+
+def word2index(word):
+    return total_words_dict[word]
+    
+def index2word(index): 
+    return total_words_list[index]
+    
+    
+    
+    
