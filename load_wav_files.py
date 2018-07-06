@@ -125,17 +125,26 @@ def load_train_dataset(data_dir, word_list, silence_percentage, noise_percentage
 
 def load_test_dataset(data_dir, word_list):
     searchfile = open(os.path.join(data_dir,"testing_list.txt"), "r")
-    X_test = []
+    temp_list = []
     for word in word_list:
         for line in searchfile:
             if word in line:
                 rate, signal = load_wav(os.path.join(data_dir,line[:-1]))
                 feature, _ = psf.fbank(signal, rate, nfilt = 40, winfunc = np.hamming)
-                X_test.append({'feature': feature, 'label': word})
+                temp_list.append({'feature': feature, 'label': word})
 
     searchfile.close()
-
-    return X_test
+    
+    X_test = np.zeros((len(temp_list), 99, 40))
+    Y_test = np.zeros( len(temp_list) )
+    
+    for i in range(len(X_test)):
+        # non capisco perchè alcuni file sono più piccoli di 99
+        if temp_list[i]['feature'].shape[0] == 99: 
+            X_test[i] = temp_list[i]['feature']
+            Y_test[i] = word2index(temp_list[i]['label'])
+    
+    return X_test, Y_test
 
 def add_noise(signal, rate, len_sec, noise_dir, noise_percentage):
     noise_index = random.randrange(6)
