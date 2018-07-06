@@ -1,0 +1,8 @@
+# The folder containing the dataset
+speech_commands_v0.01/
+
+# A python folder
+__pycache__/
+
+# The tensorflow example
+speech_commands
