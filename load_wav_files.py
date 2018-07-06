@@ -17,7 +17,7 @@ MAX_NUM_WAVS_PER_CLASS = 2**27 - 1  # ~134M
 random.seed(1181349 + 1179018)
 
 total_words_list = ["yes", "no", "up", "down", "left", "right", "on", "off", "stop", "go", "zero", "one", "two", "three", "four", "five", "six", "seven", "eight", "nine", "bed", "bird", "cat", "dog", "happy", "house", "marvin", "sheila", "tree", "wow", "_silence_"]
-    
+
 #total_words_dict = dict(enumerate(total_words_list))
 
 total_words_dict = {total_words_list[x]: x for x in range(len(total_words_list))}
@@ -81,6 +81,10 @@ def load_dataset(data_dir, word_list, noise_percentage, dataset):
         return load_train_dataset(data_dir, word_list, silence_percentage, noise_percentage)
     elif dataset == 'testing':
         return load_test_dataset(data_dir, word_list)
+    elif dataset == 'validation':
+        return load_validation_dataset(data_dir, word_list)
+    else:
+        return None
 
 def load_train_dataset(data_dir, word_list, silence_percentage, noise_percentage):
     """ Carico il data set e lo salvo dopo avelo modificato un po perche
@@ -89,7 +93,7 @@ def load_train_dataset(data_dir, word_list, silence_percentage, noise_percentage
     Ogni dato a viene caricato"""
     validation_percentage, testing_percentage = 0, 0.1
     temp_list = []
-    
+
     #wav_lists = os.path.join(data_dir, *, '*.wav')
     for word_l in word_list:
         #wav_word_list = os.path.join(data_dir, word_l)
@@ -116,11 +120,11 @@ def load_train_dataset(data_dir, word_list, silence_percentage, noise_percentage
 
     X_train = np.zeros((len(temp_list), 99, 40))
     Y_train = np.zeros( len(temp_list) )
-    
+
     for i in range(len(X_train)):
         X_train[i] = temp_list[i]['feature']
         Y_train[i] = word2index(temp_list[i]['label'])
-    
+
     return X_train, Y_train
 
 def load_test_dataset(data_dir, word_list):
@@ -130,20 +134,41 @@ def load_test_dataset(data_dir, word_list):
         for line in searchfile:
             if word in line:
                 rate, signal = load_wav(os.path.join(data_dir,line[:-1]))
+                signal = add_noise(signal, rate, 1, os.path.join(data_dir,'_background_noise_'), -1)
                 feature, _ = psf.fbank(signal, rate, nfilt = 40, winfunc = np.hamming)
                 temp_list.append({'feature': feature, 'label': word})
 
     searchfile.close()
-    
+
     X_test = np.zeros((len(temp_list), 99, 40))
     Y_test = np.zeros( len(temp_list) )
-    
+
     for i in range(len(X_test)):
-        # non capisco perchè alcuni file sono più piccoli di 99
-        if temp_list[i]['feature'].shape[0] == 99: 
-            X_test[i] = temp_list[i]['feature']
-            Y_test[i] = word2index(temp_list[i]['label'])
-    
+        X_test[i] = temp_list[i]['feature']
+        Y_test[i] = word2index(temp_list[i]['label'])
+
+    return X_test, Y_test
+
+def load_validation_dataset(data_dir, word_list):
+    searchfile = open(os.path.join(data_dir,"validation_list.txt"), "r")
+    temp_list = []
+    for word in word_list:
+        for line in searchfile:
+            if word in line:
+                rate, signal = load_wav(os.path.join(data_dir,line[:-1]))
+                signal = add_noise(signal, rate, 1, os.path.join(data_dir,'_background_noise_'), -1)
+                feature, _ = psf.fbank(signal, rate, nfilt = 40, winfunc = np.hamming)
+                temp_list.append({'feature': feature, 'label': word})
+
+    searchfile.close()
+
+    X_test = np.zeros((len(temp_list), 99, 40))
+    Y_test = np.zeros( len(temp_list) )
+
+    for i in range(len(X_test)):
+        X_test[i] = temp_list[i]['feature']
+        Y_test[i] = word2index(temp_list[i]['label'])
+
     return X_test, Y_test
 
 def add_noise(signal, rate, len_sec, noise_dir, noise_percentage):
@@ -162,14 +187,10 @@ def add_noise(signal, rate, len_sec, noise_dir, noise_percentage):
     return signal_and_noise
 
 def add_time_shift():
-    return 
+    return
 
 def word2index(word):
     return total_words_dict[word]
-    
-def index2word(index): 
+
+def index2word(index):
     return total_words_list[index]
-    
-    
-    
-    
