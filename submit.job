@@ -1,0 +1,24 @@
+#!/bin/bash
+# Setup Scheduler Options:
+#
+#$ -cwd
+#  output and error files will be generated in current directory
+#$ -m ea
+#
+
+# setup my personal/shared project folder
+MY_DIR=/nfsd/hda/vaninedoar
+
+# make my folder the current directory
+cd $MY_DIR
+
+# setup python3 environment for machine learning computations 
+source /nfsd/opt/anaconda3/anaconda3.sh 
+conda activate /nfsd/opt/anaconda3/tensorflow
+
+# run code
+python3 HDA-Project/models/conv_net.py
+
+# deactivate environment at the end of the job
+conda deactivate
+

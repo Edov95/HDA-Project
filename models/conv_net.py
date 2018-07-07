@@ -3,24 +3,25 @@ import scipy.io.wavfile
 from scipy.fftpack import dct
 import sys
 import os
-sys.path.append(os.path.abspath("/home/edoardo/Progetti/HDA"))
+sys.path.append(os.path.abspath("/nfsd/hda/vaninedoar/HDA-Project"))
 import load_wav_files as lw
 import keras
 from keras.models import Sequential
 from keras.layers import Conv2D, MaxPooling2D, Dense, Flatten, Dropout
 from keras.optimizers import Adam
 from keras.callbacks import TensorBoard
+from keras.utils.np_utils import to_categorical
 
-x_train, y_train = lw.load_dataset("speech_commands_v0.01", {'bed'}, 0.25, 'training')
+x_train, y_train = lw.load_dataset("/nfsd/hda/vaninedoar/HDA-Project/speech_commands_v0.02", {"yes", "no"}, 0.25, 'training')
 print("Loaded train dataset")
-x_test, y_test = lw.load_dataset("speech_commands_v0.01", {'bed'}, 0.25, 'testing')
+x_test, y_test = lw.load_dataset("/nfsd/hda/vaninedoar/HDA-Project/speech_commands_v0.02", {"yes", "no"}, 0.25, 'testing')
 print("Loaded test dataset")
-x_validate, y_validate = lw.load_dataset("speech_commands_v0.01", {'bed'}, 0.25, 'validation')
+x_validate, y_validate = lw.load_dataset("/nfsd/hda/vaninedoar/HDA-Project/speech_commands_v0.02", {"yes", "no"}, 0.25, 'validation')
 print("Loaded validate dataset")
 
 feat_rows = 99
 feat_cols = 40
-batch_size = 1716
+batch_size = x_train.shape[0]
 feats_shape = (99, 40, 1)
 
 x_train = x_train.reshape(x_train.shape[0], *feats_shape)
@@ -33,6 +34,8 @@ print('x_validate shape: {}'.format(x_validate.shape))
 
 # Create the CNN
 n_kws = 31
+
+#categorical_labels = to_categorical(y_train, num_classes=1)
 
 model = Sequential()
 model.add(Conv2D(32, 3, strides = (1, 1), input_shape = feats_shape, padding = 'valid',
@@ -58,9 +61,9 @@ tensorboard = TensorBoard(log_dir = r'\logs{}'.format('cnn_1layer'),
 model.compile(loss='sparse_categorical_crossentropy',
               optimizer=Adam(lr=0.002), metrics=['accuracy'])
 
-model.fit(x_train, y_train, batch_size = batch_size, epochs=15, validation_data = (x_validate, y_validate),
+model.fit(x_train, y_train, batch_size = batch_size, epochs=1, validation_data = (x_validate, y_validate),
           verbose = 1)
-score = model.evaluate(x_test, y_test, batch_size=16, verbose = 0)
+score = model.evaluate(x_test, y_test, batch_size=x_test.shape[0], verbose = 0)
 
 print('test loss: {:.4f}'.format(score[0]))
 print('test acc: {:.4f}'.format(score[1]))

@@ -7,7 +7,8 @@ import re
 import hashlib
 import math
 
-import python_speech_features as psf
+#import python_speech_features as psf
+import speech_features.audio_processing as psf
 
 from tensorflow.python.platform import gfile
 from tensorflow.python.util import compat
