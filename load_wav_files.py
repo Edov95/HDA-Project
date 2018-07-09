@@ -81,9 +81,9 @@ def load_dataset(data_dir, word_list, noise_percentage, dataset):
     if dataset == 'training':
         return load_train_dataset(data_dir, word_list, silence_percentage, noise_percentage)
     elif dataset == 'testing':
-        return load_test_dataset(data_dir, word_list)
+        return load_test_dataset(data_dir, word_list, noise_percentage)
     elif dataset == 'validation':
-        return load_validation_dataset(data_dir, word_list)
+        return load_validation_dataset(data_dir, word_list, noise_percentage)
     else:
         return None
 
@@ -92,7 +92,7 @@ def load_train_dataset(data_dir, word_list, silence_percentage, noise_percentage
     altrimenti is troppo bello cosi lo sporco un p
 
     Ogni dato a viene caricato"""
-    validation_percentage, testing_percentage = 0, 0.1
+    validation_percentage, testing_percentage = 0.1, 0.1
     temp_list = []
 
     #wav_lists = os.path.join(data_dir, *, '*.wav')
@@ -128,16 +128,17 @@ def load_train_dataset(data_dir, word_list, silence_percentage, noise_percentage
 
     return X_train, Y_train
 
-def load_test_dataset(data_dir, word_list):
+def load_test_dataset(data_dir, word_list, noise_percentage):
     searchfile = open(os.path.join(data_dir,"testing_list.txt"), "r")
     temp_list = []
-    for word in word_list:
-        for line in searchfile:
+    for line in searchfile:
+        for word in word_list:
             if word in line:
                 rate, signal = load_wav(os.path.join(data_dir,line[:-1]))
-                signal = add_noise(signal, rate, 1, os.path.join(data_dir,'_background_noise_'), -1)
+                signal = add_noise(signal, rate, 1, os.path.join(data_dir,'_background_noise_'), noise_percentage)
                 feature, _ = psf.fbank(signal, rate, nfilt = 40, winfunc = np.hamming)
                 temp_list.append({'feature': feature, 'label': word})
+                break
 
     searchfile.close()
 
@@ -150,16 +151,17 @@ def load_test_dataset(data_dir, word_list):
 
     return X_test, Y_test
 
-def load_validation_dataset(data_dir, word_list):
+def load_validation_dataset(data_dir, word_list, noise_percentage):
     searchfile = open(os.path.join(data_dir,"validation_list.txt"), "r")
     temp_list = []
-    for word in word_list:
-        for line in searchfile:
+    for line in searchfile:
+        for word in word_list:
             if word in line:
                 rate, signal = load_wav(os.path.join(data_dir,line[:-1]))
-                signal = add_noise(signal, rate, 1, os.path.join(data_dir,'_background_noise_'), -1)
+                signal = add_noise(signal, rate, 1, os.path.join(data_dir,'_background_noise_'), noise_percentage)
                 feature, _ = psf.fbank(signal, rate, nfilt = 40, winfunc = np.hamming)
                 temp_list.append({'feature': feature, 'label': word})
+                break
 
     searchfile.close()
 

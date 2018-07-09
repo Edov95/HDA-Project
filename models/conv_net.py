@@ -12,11 +12,11 @@ from keras.optimizers import Adam
 from keras.callbacks import TensorBoard
 from keras.utils.np_utils import to_categorical
 
-x_train, y_train = lw.load_dataset("/nfsd/hda/vaninedoar/HDA-Project/speech_commands_v0.02", {"yes", "no"}, 0.25, 'training')
+x_train, y_train = lw.load_dataset("/nfsd/hda/vaninedoar/HDA-Project/speech_commands_v0.02", {"yes", "no", "up", "down", "left", "right", "on", "off", "stop", "go", "zero", "one", "two", "three", "four", "five", "six", "seven", "eight", "nine", "bed", "bird", "cat", "dog", "happy", "house", "marvin", "sheila", "tree", "wow"}, 0.25, 'training')
 print("Loaded train dataset")
-x_test, y_test = lw.load_dataset("/nfsd/hda/vaninedoar/HDA-Project/speech_commands_v0.02", {"yes", "no"}, 0.25, 'testing')
+x_test, y_test = lw.load_dataset("/nfsd/hda/vaninedoar/HDA-Project/speech_commands_v0.02", {"yes", "no", "up", "down", "left", "right", "on", "off", "stop", "go", "zero", "one", "two", "three", "four", "five", "six", "seven", "eight", "nine", "bed", "bird", "cat", "dog", "happy", "house", "marvin", "sheila", "tree", "wow"}, 0.25, 'testing')
 print("Loaded test dataset")
-x_validate, y_validate = lw.load_dataset("/nfsd/hda/vaninedoar/HDA-Project/speech_commands_v0.02", {"yes", "no"}, 0.25, 'validation')
+x_validate, y_validate = lw.load_dataset("/nfsd/hda/vaninedoar/HDA-Project/speech_commands_v0.02", {"yes", "no", "up", "down", "left", "right", "on", "off", "stop", "go", "zero", "one", "two", "three", "four", "five", "six", "seven", "eight", "nine", "bed", "bird", "cat", "dog", "happy", "house", "marvin", "sheila", "tree", "wow"}, 0.25, 'validation')
 print("Loaded validate dataset")
 
 feat_rows = 99
@@ -38,30 +38,30 @@ n_kws = 31
 #categorical_labels = to_categorical(y_train, num_classes=1)
 
 model = Sequential()
-model.add(Conv2D(32, 3, strides = (1, 1), input_shape = feats_shape, padding = 'valid',
+model.add(Conv2D(32, 3, strides = (3, 3), input_shape = feats_shape, padding = 'valid',
                   data_format = 'channels_last', dilation_rate = (1, 1),
                   activation = 'relu', use_bias = True, bias_initializer = 'zeros',
                   kernel_initializer = 'glorot_uniform'))
 
-model.add(MaxPooling2D(pool_size = 2))
+model.add(MaxPooling2D((2,2)))
 model.add(Dropout(0.2))
-model.add(Conv2D(64, (3,3), strides=(1, 1),  padding='valid',
+model.add(Conv2D(64, (3,3), strides=(3, 3),  padding='valid',
                  data_format='channels_last', dilation_rate=(1, 1),
                  activation='relu', use_bias=True, kernel_initializer='random_uniform',
                  bias_initializer='zeros'))
-model.add(MaxPooling2D(1))
+model.add(MaxPooling2D((2,2)))
 model.add(Flatten())
 model.add(Dense(32, activation = 'relu'))
 model.add(Dense(n_kws, activation='softmax'))
 
-tensorboard = TensorBoard(log_dir = r'\logs{}'.format('cnn_1layer'),
-                         write_graph = True, write_grads = True, histogram_freq = 1, write_images = True)
+#tensorboard = TensorBoard(log_dir = r'\logs{}'.format('cnn_1layer'),
+#                         write_graph = True, write_grads = True, histogram_freq = 1, write_images = True)
 
 
 model.compile(loss='sparse_categorical_crossentropy',
               optimizer=Adam(lr=0.002), metrics=['accuracy'])
 
-model.fit(x_train, y_train, batch_size = batch_size, epochs=1, validation_data = (x_validate, y_validate),
+model.fit(x_train, y_train, batch_size = batch_size, epochs=100, validation_data = (x_validate, y_validate),
           verbose = 1)
 score = model.evaluate(x_test, y_test, batch_size=x_test.shape[0], verbose = 0)
 
