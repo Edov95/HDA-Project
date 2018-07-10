@@ -1,0 +1,25 @@
+{
+  "feature": {
+    "name": "fbank",
+    "samplerate":16000,
+    "winlen":0.025,
+    "winstep": 0.01,
+    "nfilt":40,
+    "nfft":512,
+    "lowfreq":0,
+    "highfreq": null,
+    "preemph": 0.97
+  },
+
+  "words_training": {
+    "data_dir": "../speech_commands_v0.01",
+    "wanted_words":[
+      "bird"
+    ],
+    "use_noise": true,
+    "noise_percentage": 0.25,
+    "silence_percentage": 0.25,
+    "noise_volume_range": 2,
+    "saved_path": "../compressed_feature"
+  }
+}

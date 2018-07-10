@@ -8,7 +8,7 @@ import hashlib
 import math
 
 #import python_speech_features as psf
-import speech_features.audio_processing as psf
+import audio_processing as psf
 
 from tensorflow.python.platform import gfile
 from tensorflow.python.util import compat
@@ -17,11 +17,15 @@ MAX_NUM_WAVS_PER_CLASS = 2**27 - 1  # ~134M
 
 random.seed(1181349 + 1179018)
 
-total_words_list = ["yes", "no", "up", "down", "left", "right", "on", "off", "stop", "go", "zero", "one", "two", "three", "four", "five", "six", "seven", "eight", "nine", "bed", "bird", "cat", "dog", "happy", "house", "marvin", "sheila", "tree", "wow", "_silence_"]
+total_words_list = ["yes", "no", "up", "down", "left", "right", "on", "off",
+                    "stop", "go", "zero", "one", "two", "three", "four", "five",
+                    "six", "seven", "eight", "nine", "bed", "bird", "cat",
+                    "dog", "happy", "house", "marvin", "sheila", "tree", "wow",
+                    "_silence_"]
 
 #total_words_dict = dict(enumerate(total_words_list))
 
-total_words_dict = {total_words_list[x]: x for x in range(len(total_words_list))}
+total_words_dict={total_words_list[x]: x for x in range(len(total_words_list))}
 
 
 def which_set(filename, validation_percentage, testing_percentage):
@@ -76,18 +80,23 @@ def load_wav(wav_file):
     return rate, signal
 
 
-def load_dataset(data_dir, word_list, noise_percentage, dataset):
+def load_dataset(data_dir, word_list, noise_percentage, dataset,
+                 noise_volume_range):
     silence_percentage = 0.2
     if dataset == 'training':
-        return load_train_dataset(data_dir, word_list, silence_percentage, noise_percentage)
+        return load_train_dataset(data_dir, word_list, silence_percentage,
+                                  noise_percentage, noise_volume_range)
     elif dataset == 'testing':
-        return load_test_dataset(data_dir, word_list, noise_percentage)
+        return load_test_dataset(data_dir, word_list, noise_percentage,
+                                 noise_volume_range)
     elif dataset == 'validation':
-        return load_validation_dataset(data_dir, word_list, noise_percentage)
+        return load_validation_dataset(data_dir, word_list, noise_percentage,
+                                       noise_volume_range)
     else:
         return None
 
-def load_train_dataset(data_dir, word_list, silence_percentage, noise_percentage):
+def load_train_dataset(data_dir, word_list, silence_percentage,
+                       noise_percentage, noise_volume_range):
     """ Carico il data set e lo salvo dopo avelo modificato un po perche
     altrimenti is troppo bello cosi lo sporco un p
 
@@ -105,8 +114,11 @@ def load_train_dataset(data_dir, word_list, silence_percentage, noise_percentage
 
             if which_set(file, validation_percentage, testing_percentage) == 'training':
                 rate, signal = load_wav(file);
-                signal_and_noise = add_noise(signal, rate, 1, os.path.join(data_dir,'_background_noise_'), noise_percentage)
-                feature, _ = psf.fbank(signal_and_noise, rate, nfilt = 40, winfunc = np.hamming)
+                signal_and_noise = add_noise(signal, rate, 1,
+                    os.path.join(data_dir,'_background_noise_'),
+                    noise_percentage, noise_volume_range)
+                feature, _ = psf.fbank(signal_and_noise, rate, nfilt = 40,
+                    winfunc = np.hamming)
                 #if feature.shape[0] != 99:
                 #    print(str(len(signal)) + "                 " + str(rate))
                 temp_list.append({'feature': feature, 'label': word_l})
@@ -115,7 +127,9 @@ def load_train_dataset(data_dir, word_list, silence_percentage, noise_percentage
     #silence = len(X_train) * silence_percentage
     silence = int(math.ceil(len(temp_list) * silence_percentage / 100))
     for _ in range(silence):
-        temp_list.append({'feature': 0, 'label': "_silence_"})
+        signal_and_noise = add_noise(np.zeros((16000,1)), rate, 1,
+            os.path.join(data_dir,'_background_noise_'), 1)
+        temp_list.append({'feature': signal_and_noise, 'label': "_silence_"})
 
     random.shuffle(temp_list)
 
@@ -128,15 +142,18 @@ def load_train_dataset(data_dir, word_list, silence_percentage, noise_percentage
 
     return X_train, Y_train
 
-def load_test_dataset(data_dir, word_list, noise_percentage):
+def load_test_dataset(data_dir, word_list, noise_percentage,
+                      noise_volume_range):
     searchfile = open(os.path.join(data_dir,"testing_list.txt"), "r")
     temp_list = []
     for line in searchfile:
         for word in word_list:
             if word in line:
                 rate, signal = load_wav(os.path.join(data_dir,line[:-1]))
-                signal = add_noise(signal, rate, 1, os.path.join(data_dir,'_background_noise_'), noise_percentage)
-                feature, _ = psf.fbank(signal, rate, nfilt = 40, winfunc = np.hamming)
+                signal = add_noise(signal, rate, 1, os.path.join(data_dir,
+                    '_background_noise_'), noise_percentage, noise_volume_range)
+                feature, _ = psf.fbank(signal, rate, nfilt = 40,
+                    winfunc = np.hamming)
                 temp_list.append({'feature': feature, 'label': word})
                 break
 
@@ -151,15 +168,18 @@ def load_test_dataset(data_dir, word_list, noise_percentage):
 
     return X_test, Y_test
 
-def load_validation_dataset(data_dir, word_list, noise_percentage):
+def load_validation_dataset(data_dir, word_list, noise_percentage,
+                            noise_volume_range):
     searchfile = open(os.path.join(data_dir,"validation_list.txt"), "r")
     temp_list = []
     for line in searchfile:
         for word in word_list:
             if word in line:
                 rate, signal = load_wav(os.path.join(data_dir,line[:-1]))
-                signal = add_noise(signal, rate, 1, os.path.join(data_dir,'_background_noise_'), noise_percentage)
-                feature, _ = psf.fbank(signal, rate, nfilt = 40, winfunc = np.hamming)
+                signal = add_noise(signal, rate, 1, os.path.join(data_dir,
+                    '_background_noise_'), noise_percentage, noise_volume_range)
+                feature, _ = psf.fbank(signal, rate, nfilt = 40,
+                    winfunc = np.hamming)
                 temp_list.append({'feature': feature, 'label': word})
                 break
 
@@ -174,16 +194,20 @@ def load_validation_dataset(data_dir, word_list, noise_percentage):
 
     return X_test, Y_test
 
-def add_noise(signal, rate, len_sec, noise_dir, noise_percentage):
-    noise_index = random.randrange(6)
-    noise_list = os.path.join(noise_dir,'*.wav')
-    noise_filename = gfile.Glob(noise_list)[noise_index]
-    _, noise = load_wav(noise_filename)
-    rand_stop = len(noise) - rate * len_sec
-    initial_offset = random.randrange(rand_stop)
-    noise = noise[initial_offset:initial_offset + rate * len_sec]
-    signal = np.pad(signal,(0, rate * len_sec - len(signal)), 'constant', constant_values = 0)
+def add_noise(signal, rate, len_sec, noise_dir, noise_percentage,
+              noise_volume_range = 1):
     if random.random() < noise_percentage:
+        noise_index = random.randrange(6)
+        noise_list = os.path.join(noise_dir,'*.wav')
+        noise_filename = gfile.Glob(noise_list)[noise_index]
+        _, noise = load_wav(noise_filename)
+        rand_stop = len(noise) - rate * len_sec
+        initial_offset = random.randrange(rand_stop)
+        noise = noise[initial_offset:initial_offset + rate * len_sec]
+        signal = np.pad(signal,(0, rate * len_sec - len(signal)),
+            'constant', constant_values = 0)
+        noise_volume = np.random.uniform(0, noise_volume_range)
+        noise = noise * noise_volume
         signal_and_noise = np.add(signal,noise)
     else:
         signal_and_noise = signal
