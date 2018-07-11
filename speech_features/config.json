@@ -12,10 +12,10 @@
   },
 
   "words_training": {
-    "data_dir": "../speech_commands_v0.01",
+    "data_dir": "../speech_commands_v0.02",
     "wanted_words":[
-      "bird"
-    ],
+      "yes", 
+      "no"],
     "use_noise": true,
     "noise_percentage": 0.25,
     "silence_percentage": 0.25,
