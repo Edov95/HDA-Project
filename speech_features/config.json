@@ -12,10 +12,9 @@
   },
 
   "words_training": {
-    "data_dir": "../speech_commands_v0.02",
+    "data_dir": "../speech_commands_v0.01",
     "wanted_words":[
-      "yes", 
-      "no"],
+      "bed"],
     "use_noise": true,
     "noise_percentage": 0.25,
     "silence_percentage": 0.25,

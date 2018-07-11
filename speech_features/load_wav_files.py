@@ -7,8 +7,8 @@ import re
 import hashlib
 import math
 
-#import python_speech_features as psf
-import audio_processing as psf
+import python_speech_features as psf
+#import audio_processing as psf
 
 from tensorflow.python.platform import gfile
 from tensorflow.python.util import compat
@@ -109,9 +109,6 @@ def load_train_dataset(data_dir, word_list, silence_percentage,
         #wav_word_list = os.path.join(data_dir, word_l)
         wav_list = os.path.join(data_dir, word_l, '*.wav')
         for file in gfile.Glob(wav_list):
-            _, word = os.path.split(os.path.dirname(file))
-            word = word.lower()
-
             if which_set(file, validation_percentage, testing_percentage) == 'training':
                 rate, signal = load_wav(file);
                 signal_and_noise = add_noise(signal, rate, 1,
@@ -119,6 +116,7 @@ def load_train_dataset(data_dir, word_list, silence_percentage,
                     noise_percentage, noise_volume_range)
                 feature, _ = psf.fbank(signal_and_noise, rate, nfilt = 40,
                     winfunc = np.hamming)
+                del signal, signal_and_noise
                 #if feature.shape[0] != 99:
                 #    print(str(len(signal)) + "                 " + str(rate))
                 temp_list.append({'feature': feature, 'label': word_l})
@@ -129,7 +127,10 @@ def load_train_dataset(data_dir, word_list, silence_percentage,
     for _ in range(silence):
         signal_and_noise = add_noise(np.zeros((16000,1)), rate, 1,
             os.path.join(data_dir,'_background_noise_'), 1)
-        temp_list.append({'feature': signal_and_noise, 'label': "_silence_"})
+        feature, _ = psf.fbank(signal_and_noise, rate, nfilt = 40,
+            winfunc = np.hamming)
+        del signal_and_noise
+        temp_list.append({'feature': feature, 'label': "_silence_"})
 
     random.shuffle(temp_list)
 
@@ -139,6 +140,8 @@ def load_train_dataset(data_dir, word_list, silence_percentage,
     for i in range(len(X_train)):
         X_train[i] = temp_list[i]['feature']
         Y_train[i] = word2index(temp_list[i]['label'])
+
+    del temp_list
 
     return X_train, Y_train
 
@@ -166,6 +169,8 @@ def load_test_dataset(data_dir, word_list, noise_percentage,
         X_test[i] = temp_list[i]['feature']
         Y_test[i] = word2index(temp_list[i]['label'])
 
+    del temp_list
+
     return X_test, Y_test
 
 def load_validation_dataset(data_dir, word_list, noise_percentage,
@@ -185,17 +190,21 @@ def load_validation_dataset(data_dir, word_list, noise_percentage,
 
     searchfile.close()
 
-    X_test = np.zeros((len(temp_list), 99, 40))
-    Y_test = np.zeros( len(temp_list) )
+    X_validation = np.zeros((len(temp_list), 99, 40))
+    Y_validation = np.zeros( len(temp_list) )
 
     for i in range(len(X_test)):
-        X_test[i] = temp_list[i]['feature']
-        Y_test[i] = word2index(temp_list[i]['label'])
+        X_validation[i] = temp_list[i]['feature']
+        Y_validation[i] = word2index(temp_list[i]['label'])
 
-    return X_test, Y_test
+    del temp_list
+
+    return X_validation, Y_validation
 
 def add_noise(signal, rate, len_sec, noise_dir, noise_percentage,
               noise_volume_range = 1):
+    signal = np.pad(signal,(0, rate * len_sec - len(signal)),
+        'constant', constant_values = 0)
     if random.random() < noise_percentage:
         noise_index = random.randrange(6)
         noise_list = os.path.join(noise_dir,'*.wav')
@@ -204,13 +213,13 @@ def add_noise(signal, rate, len_sec, noise_dir, noise_percentage,
         rand_stop = len(noise) - rate * len_sec
         initial_offset = random.randrange(rand_stop)
         noise = noise[initial_offset:initial_offset + rate * len_sec]
-        signal = np.pad(signal,(0, rate * len_sec - len(signal)),
-            'constant', constant_values = 0)
         noise_volume = np.random.uniform(0, noise_volume_range)
         noise = noise * noise_volume
         signal_and_noise = np.add(signal,noise)
+        del noise
     else:
         signal_and_noise = signal
+
     return signal_and_noise
 
 def add_time_shift():

@@ -7,3 +7,7 @@ __pycache__/
 
 # The tensorflow example
 speech_commands
+
+# Configs files
+speech_features/config.json
+config.json
