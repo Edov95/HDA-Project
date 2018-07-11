@@ -7,8 +7,8 @@ import re
 import hashlib
 import math
 
-import python_speech_features as psf
-#import audio_processing as psf
+#import python_speech_features as psf
+import audio_processing as psf
 
 from tensorflow.python.platform import gfile
 from tensorflow.python.util import compat
@@ -125,7 +125,7 @@ def load_train_dataset(data_dir, word_list, silence_percentage,
     #silence = len(X_train) * silence_percentage
     silence = int(math.ceil(len(temp_list) * silence_percentage / 100))
     for _ in range(silence):
-        signal_and_noise = add_noise(np.zeros((16000,1)), rate, 1,
+        signal_and_noise = add_noise(np.zeros((16000,)), rate, 1,
             os.path.join(data_dir,'_background_noise_'), 1)
         feature, _ = psf.fbank(signal_and_noise, rate, nfilt = 40,
             winfunc = np.hamming)
@@ -193,7 +193,7 @@ def load_validation_dataset(data_dir, word_list, noise_percentage,
     X_validation = np.zeros((len(temp_list), 99, 40))
     Y_validation = np.zeros( len(temp_list) )
 
-    for i in range(len(X_test)):
+    for i in range(len(X_validation)):
         X_validation[i] = temp_list[i]['feature']
         Y_validation[i] = word2index(temp_list[i]['label'])
 
@@ -205,7 +205,7 @@ def add_noise(signal, rate, len_sec, noise_dir, noise_percentage,
               noise_volume_range = 1):
     signal = np.pad(signal,(0, rate * len_sec - len(signal)),
         'constant', constant_values = 0)
-    if random.random() < noise_percentage:
+    if random.random() <= noise_percentage:
         noise_index = random.randrange(6)
         noise_list = os.path.join(noise_dir,'*.wav')
         noise_filename = gfile.Glob(noise_list)[noise_index]

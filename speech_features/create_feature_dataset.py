@@ -2,7 +2,7 @@ import json
 import argparse
 import load_wav_files as lw
 import os
-
+import numpy as np
 
 FLAG = None
 
@@ -33,21 +33,21 @@ def main():
     print('Loading test dataset...')
     x_test, y_test = lw.load_dataset(config['words_training']['data_dir'],
         config['words_training']['wanted_words'],
-        config['words_training']['noise_percentage'], 'test',
+        config['words_training']['noise_percentage'], 'testing',
         config['words_training']['noise_volume_range'])
     print('Test dataset loaded')
 
-    np.save(os.join(config['wanted_words']['saved_path'], 'x_train.npy'), x_train)
+    np.save(os.path.join(config['words_training']['saved_path'], 'x_train.npy'), x_train)
     print('x_train saved')
-    np.save(os.join(config['wanted_words']['saved_path'], 'y_train.npy'), y_train)
+    np.save(os.path.join(config['words_training']['saved_path'], 'y_train.npy'), y_train)
     print('y_train saved')
-    np.save(os.join(config['wanted_words']['saved_path'], 'x_validation.npy'), x_validation)
+    np.save(os.path.join(config['words_training']['saved_path'], 'x_validation.npy'), x_validation)
     print('x_validation saved')
-    np.save(os.join(config['wanted_words']['saved_path'], 'y_validation.npy'), y_validation)
+    np.save(os.path.join(config['words_training']['saved_path'], 'y_validation.npy'), y_validation)
     print('y_validation saved')
-    np.save(os.join(config['wanted_words']['saved_path'], 'x_test.npy'), x_test)
+    np.save(os.path.join(config['words_training']['saved_path'], 'x_test.npy'), x_test)
     print('x_test saved')
-    np.save(os.join(config['wanted_words']['saved_path'], 'x_test.npy'), x_test)
+    np.save(os.path.join(config['words_training']['saved_path'], 'x_test.npy'), x_test)
     print('y_test saved')
 
 
