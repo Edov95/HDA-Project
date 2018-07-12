@@ -4,8 +4,9 @@ import keras
 from keras.models import Sequential
 from keras.layers import Conv2D, MaxPooling2D, Dense, Flatten, Dropout
 from keras.optimizers import Adam
+from keras.callbacks import ReduceLROnPlateau
 
-def convolutional_network_2_layer(n_kws, feats_shape, optimizer = None):
+def convolutional_network_2_layer(n_kws, feats_shape, optimizer = None, learning_rate=0.002):
 
     model = Sequential()
     model.add(Conv2D( 32, 3, strides = (3, 3), input_shape = feats_shape,
@@ -28,7 +29,7 @@ def convolutional_network_2_layer(n_kws, feats_shape, optimizer = None):
 
     if optimizer == None:
         model.compile(loss='sparse_categorical_crossentropy',
-                  optimizer=Adam(lr=0.04), metrics=['accuracy'])
+                  optimizer=Adam(lr=learning_rate), metrics=['accuracy'])
     else:
         model.compile(loss='sparse_categorical_crossentropy',
                   optimizer=optimizer, metrics=['accuracy'])
@@ -37,37 +38,30 @@ def convolutional_network_2_layer(n_kws, feats_shape, optimizer = None):
 
 
 def train_model(path_to_saved_files, model, verb, n_epochs, save_model,
-                path_to_save_model):
+                path_to_save_model, batch_size):
     # Carico i dataset già creati
     if verb:
         print('convolutional_network_2_layer: loading the train dataset...')
-    x_train = np.load(os.join(os.path.absolute(path_to_save_model),
-        'x_train.npy'))
-    y_train = np.load(os.join(os.path.absolute(path_to_save_model),
-        'y_train.npy'))
+    x_train = np.load(os.path.join(path_to_saved_files,'x_train.npy'))
+    y_train = np.load(os.path.join(path_to_saved_files,'y_train.npy'))
     print('convolutional_network_2_layer: train dataset loaded')
 
     if verb:
         print('convolutional_network_2_layer: loading the validate dataset...')
-    x_validate = np.load(os.join(os.path.absolute(path_to_save_model),
-        'x_validate.npy'))
-    y_validate = np.load(os.join(os.path.absolute(path_to_save_model),
-        'y_validate.npy'))
+    x_validate = np.load(os.path.join(path_to_saved_files,'x_validation.npy'))
+    y_validate = np.load(os.path.join(path_to_saved_files,'y_validation.npy'))
     print('convolutional_network_2_layer: validate dataset loaded')
 
     if verb:
         print('convolutional_network_2_layer: loading the test dataset...')
-    x_test = np.load(os.join(os.path.absolute(path_to_save_model),
-        'x_test.npy'))
-    y_test = np.load(os.join(os.path.absolute(path_to_save_model),
-        'y_test.npy'))
+    x_test = np.load(os.path.join(path_to_saved_files,'x_test.npy'))
+    y_test = np.load(os.path.join(path_to_saved_files,'y_test.npy'))
     print('convolutional_network_2_layer: test dataset loaded')
 
     x_train = x_train / np.max(x_train)
     x_validate = x_validate / np.max(x_validate)
     x_test = x_test / np.max(x_test)
 
-    batch_size = 512
     feat_cols = x_train.shape[1]
     feat_rows = x_train.shape[2]
 
@@ -84,9 +78,9 @@ def train_model(path_to_saved_files, model, verb, n_epochs, save_model,
         print('feature cols: {}'.format(feat_cols))
 
     learning_rate_reduction = ReduceLROnPlateau(monitor='val_acc',
-                                                patience=4,
+                                                patience=1,
                                                 verbose=1,
-                                                factor=0.5,
+                                                factor=0.1,
                                                 min_lr=0.00001)
 
     model.fit(x_train, y_train, batch_size = batch_size, epochs = n_epochs,

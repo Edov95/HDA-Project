@@ -20,8 +20,8 @@ def main():
     with open(FLAG.config) as f:
         config = json.loads(f.read())
 
-    model = cnn.convolutional_network_2_layer(31, (99,40,1))
-    model = cnn.train_model("compressed_feature", model, 1, 10, True, "saved_model")
+    model = cnn.convolutional_network_2_layer(31, (99,40,1), learning_rate = config['model']['learning_rate'])
+    model = cnn.train_model("/nfsd/hda/vaninedoar/HDA-Project/compressed_feature", model, 1, config['model']['epoch'], True, "saved_model", batch_size = config['model']['batch_size'])
 
 if __name__ == "__main__":
     parser = argparse.ArgumentParser()

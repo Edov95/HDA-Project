@@ -47,7 +47,7 @@ def main():
     print('y_validation saved')
     np.save(os.path.join(config['words_training']['saved_path'], 'x_test.npy'), x_test)
     print('x_test saved')
-    np.save(os.path.join(config['words_training']['saved_path'], 'x_test.npy'), x_test)
+    np.save(os.path.join(config['words_training']['saved_path'], 'y_test.npy'), x_test)
     print('y_test saved')
 
 

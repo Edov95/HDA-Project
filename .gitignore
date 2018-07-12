@@ -1,5 +1,6 @@
 # The folder containing the dataset
 speech_commands_v0.01/
+speech_commands_v0.02/
 compressed_feature/
 
 # A python folder
@@ -11,3 +12,4 @@ speech_commands
 # Configs files
 speech_features/config.json
 config.json
+submit.job.*
