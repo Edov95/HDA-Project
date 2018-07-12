@@ -21,20 +21,17 @@ def main():
     print('Loading training dataset...')
     x_train, y_train = lw.load_dataset(config['words_training']['data_dir'],
         config['words_training']['wanted_words'],
-        config['words_training']['noise_percentage'], 'training',
-        config['words_training']['noise_volume_range'])
+        config['words_training']['noise_percentage'], 'training')
     print('Trainig dataset loaded')
     print('Loading validation dataset...')
     x_validation, y_validation = lw.load_dataset(config['words_training']['data_dir'],
         config['words_training']['wanted_words'],
-        config['words_training']['noise_percentage'], 'validation',
-        config['words_training']['noise_volume_range'])
+        config['words_training']['noise_percentage'], 'validation')
     print('Validation dataset loaded')
     print('Loading test dataset...')
     x_test, y_test = lw.load_dataset(config['words_training']['data_dir'],
         config['words_training']['wanted_words'],
-        config['words_training']['noise_percentage'], 'testing',
-        config['words_training']['noise_volume_range'])
+        config['words_training']['noise_percentage'], 'testing')
     print('Test dataset loaded')
 
     np.save(os.path.join(config['words_training']['saved_path'], 'x_trainMFCC.npy'), x_train)

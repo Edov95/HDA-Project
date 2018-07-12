@@ -4,6 +4,22 @@ import numpy
 import math
 import logging
 
+from scipy.fftpack import dct
+
+def lifter(cepstra, L=22):
+    """Apply a cepstral lifter the the matrix of cepstra. This has the effect of increasing the
+    magnitude of the high frequency DCT coeffs.
+    :param cepstra: the matrix of mel-cepstra, will be numframes * numcep in size.
+    :param L: the liftering coefficient to use. Default is 22. L <= 0 disables lifter.
+    """
+    if L > 0:
+        nframes,ncoeff = numpy.shape(cepstra)
+        n = numpy.arange(ncoeff)
+        lift = 1 + (L/2.)*numpy.sin(numpy.pi*n/L)
+        return lift*cepstra
+    else:
+        # values of L <= 0, do nothing
+        return cepstra
 
 def round_half_up(number):
     return int(decimal.Decimal(number).quantize(decimal.Decimal('1'),
@@ -113,7 +129,7 @@ def mfcc(signal,samplerate=16000,winlen=0.025,winstep=0.01,numcep=13,
     :param winfunc: the analysis window to apply to each frame. By default no window is applied. You can use numpy window functions here e.g. winfunc=numpy.hamming
     :returns: A numpy array of size (NUMFRAMES by numcep) containing features. Each row holds 1 feature vector.
     """
-    feat,energy = mel_fbank(signal,samplerate,winlen,winstep,nfilt,nfft,lowfreq,highfreq,preemph,winfunc)
+    feat,energy = fbank(signal,samplerate,winlen,winstep,nfilt,nfft,lowfreq,highfreq,preemph,winfunc)
     feat = numpy.log(feat)
     feat = dct(feat, type=2, axis=1, norm='ortho')[:,:numcep]
     feat = lifter(feat,ceplifter)
