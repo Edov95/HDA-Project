@@ -75,7 +75,7 @@ learning_rate_reduction = ReduceLROnPlateau(monitor='val_acc',
                                             min_lr=0.00001)
 
 autoencoder_train = autoencoder.fit(x_trainMFCC, x_trainMFCC, batch_size=batch_size,
-    epochs= 1000, verbose=1,validation_data=(x_validateMFCC, x_validateMFCC)
+    epochs= 1000, verbose=1,validation_data=(x_validateMFCC, x_validateMFCC),
     callbacks = [learning_rate_reduction])
 
 enc = Model(input_img, flatten)
