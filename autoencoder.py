@@ -1,14 +1,10 @@
 import numpy as np
 from sklearn import svm
 import keras
-from matplotlib import pyplot as plt
-import gzip
-%matplotlib inline
 from keras.layers import Input,Conv2D,MaxPooling2D,UpSampling2D, Flatten, Dense, Reshape
 from keras.models import Model
 from keras.optimizers import Adam
-form keras.callbacks import ReduceLROnPlateau
-
+from keras.callbacks import ReduceLROnPlateau
 
 x_validateMFCC = np.load('compressed_feature/x_validate.npy')
 y_validateMFCC = np.load('compressed_feature/y_validate.npy')
@@ -76,7 +72,7 @@ learning_rate_reduction = ReduceLROnPlateau(monitor='val_acc',
                                             patience=4,
                                             verbose=1,
                                             factor=0.5,
-                                            min_lr=0.00001))
+                                            min_lr=0.00001)
 
 autoencoder_train = autoencoder.fit(x_trainMFCC, x_trainMFCC, batch_size=batch_size,
     epochs= 1000, verbose=1,validation_data=(x_validateMFCC, x_validateMFCC)
