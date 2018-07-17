@@ -7,13 +7,14 @@ import re
 import hashlib
 import math
 
-#import python_speech_features as psf
-import audio_processing as psf
+import python_speech_features as psf
+#import audio_processing as psf
 
 from tensorflow.python.platform import gfile
 from tensorflow.python.util import compat
 
 MAX_NUM_WAVS_PER_CLASS = 2**27 - 1  # ~134M
+print(MAX_NUM_WAVS_PER_CLASS)
 
 random.seed(1181349 + 1179018)
 
@@ -67,6 +68,7 @@ def which_set(filename, validation_percentage, testing_percentage):
   percentage_hash = ((int(hash_name_hashed, 16) %
                       (MAX_NUM_WAVS_PER_CLASS + 1)) *
                      (100.0 / MAX_NUM_WAVS_PER_CLASS))
+
   if percentage_hash < validation_percentage:
     result = 'validation'
   elif percentage_hash < (testing_percentage + validation_percentage):
@@ -80,28 +82,31 @@ def load_wav(wav_file):
     return rate, signal
 
 
-def load_dataset(data_dir, word_list, noise_percentage, dataset,
-                 noise_volume_range):
-    silence_percentage = 0.2
+def load_dataset(data_dir, word_list, feature, noise_percentage, dataset,
+                 noise_volume_range, validation_percentage, testing_percentage):
+    silence_percentage = 0.0
     if dataset == 'training':
-        return load_train_dataset(data_dir, word_list, silence_percentage,
-                                  noise_percentage, noise_volume_range)
+        return load_train_dataset(data_dir, word_list, feature, silence_percentage,
+                                  noise_percentage, noise_volume_range,
+                                  validation_percentage, testing_percentage)
     elif dataset == 'testing':
-        return load_test_dataset(data_dir, word_list, noise_percentage,
-                                 noise_volume_range)
+        return load_test_dataset(data_dir, word_list, feature, noise_percentage,
+                                 noise_volume_range, validation_percentage,
+                                 testing_percentage)
     elif dataset == 'validation':
-        return load_validation_dataset(data_dir, word_list, noise_percentage,
-                                       noise_volume_range)
+        return load_validation_dataset(data_dir, word_list, feature, noise_percentage,
+                                       noise_volume_range, validation_percentage,
+                                       testing_percentage)
     else:
         return None
 
-def load_train_dataset(data_dir, word_list, silence_percentage,
-                       noise_percentage, noise_volume_range):
+def load_train_dataset(data_dir, word_list, feature, silence_percentage,
+                       noise_percentage, noise_volume_range,
+                       validation_percentage, testing_percentage):
     """ Carico il data set e lo salvo dopo avelo modificato un po perche
     altrimenti is troppo bello cosi lo sporco un p
 
     Ogni dato a viene caricato"""
-    validation_percentage, testing_percentage = 0.1, 0.1
     temp_list = []
 
     #wav_lists = os.path.join(data_dir, *, '*.wav')
@@ -114,92 +119,195 @@ def load_train_dataset(data_dir, word_list, silence_percentage,
                 signal_and_noise = add_noise(signal, rate, 1,
                     os.path.join(data_dir,'_background_noise_'),
                     noise_percentage, noise_volume_range)
-                feature, _ = psf.fbank(signal_and_noise, rate, nfilt = 40,
-                    winfunc = np.hamming)
+                if feature == 'fbank':
+                    feat, _ = psf.fbank(signal_and_noise, rate, nfilt = 40,
+                        winfunc = np.hamming)
+                elif feature == 'mfcc':
+                    feat = psf.mfcc(signal_and_noise, rate, nfilt = 40,
+                        winfunc = np.hamming, numcep = 12, appendEnergy = False)
+                elif feature == 'delta':
+                    feat = psf.mfcc(signal_and_noise, rate, nfilt = 40,
+                        winfunc = np.hamming)
+                    feat = np.concatenate((feature, psf.delta(feature, 2)), axis = 1)
+                elif feature == 'deltadelta':
+                    feat = psf.mfcc(signal_and_noise, rate, nfilt = 40,
+                        winfunc = np.hamming)
+                    feat = np.concatenate((feature, psf.delta(feature, 2)), axis = 1)
+                    feat = np.concatenate((feature, psf.delta(feature, 2)), axis = 1)
+                else:
+                    print('besteme')
                 del signal, signal_and_noise
-                #if feature.shape[0] != 99:
-                #    print(str(len(signal)) + "                 " + str(rate))
-                temp_list.append({'feature': feature, 'label': word_l})
+                temp_list.append({'feature': feat, 'label': word_l})
 
-    # hotspot
-    #silence = len(X_train) * silence_percentage
     silence = int(math.ceil(len(temp_list) * silence_percentage / 100))
     for _ in range(silence):
         signal_and_noise = add_noise(np.zeros((16000,)), rate, 1,
             os.path.join(data_dir,'_background_noise_'), 1)
-        feature, _ = psf.fbank(signal_and_noise, rate, nfilt = 40,
-            winfunc = np.hamming)
+        if feature == 'fbank':
+            feat, _ = psf.fbank(signal_and_noise, rate, nfilt = 40,
+                winfunc = np.hamming)
+        elif feature == 'mfcc':
+            feat = psf.mfcc(signal_and_noise, rate, nfilt = 40,
+                winfunc = np.hamming, numcep = 12, appendEnergy = False)
+        elif feature == 'delta':
+            feat = psf.mfcc(signal_and_noise, rate, nfilt = 40,
+                winfunc = np.hamming)
+            feat = np.concatenate((feature, psf.delta(feature, 2)), axis = 1)
+        elif feature == 'deltadelta':
+            feat = psf.mfcc(signal_and_noise, rate, nfilt = 40,
+                winfunc = np.hamming)
+            feat = np.concatenate((feature, psf.delta(feature, 2)), axis = 1)
+            feat = np.concatenate((feature, psf.delta(feature, 2)), axis = 1)
+        else:
+            print('besteme')
         del signal_and_noise
-        temp_list.append({'feature': feature, 'label': "_silence_"})
+        temp_list.append({'feature': feat, 'label': "_silence_"})
 
+    random.seed(100)
     random.shuffle(temp_list)
 
-    X_train = np.zeros((len(temp_list), 99, 40))
-    Y_train = np.zeros( len(temp_list) )
+    X = np.zeros((len(temp_list), 99, 12))
+    Y = np.zeros( len(temp_list) )
 
-    for i in range(len(X_train)):
-        X_train[i] = temp_list[i]['feature']
-        Y_train[i] = word2index(temp_list[i]['label'])
+    for i in range(len(temp_list)):
+        X[i] = temp_list[i]['feature']
+        Y[i] = word2index(temp_list[i]['label'])
 
     del temp_list
 
-    return X_train, Y_train
+    return X, Y
 
-def load_test_dataset(data_dir, word_list, noise_percentage,
-                      noise_volume_range):
+def load_test_dataset(data_dir, word_list, feature, noise_percentage,
+                      noise_volume_range, validation_percentage,
+                      testing_percentage):
+    """ Carico il data set e lo salvo dopo avelo modificato un po perche
+    altrimenti is troppo bello cosi lo sporco un p
+
+    Ogni dato a viene caricato
+    
     searchfile = open(os.path.join(data_dir,"testing_list.txt"), "r")
     temp_list = []
     for line in searchfile:
         for word in word_list:
             if word in line:
                 rate, signal = load_wav(os.path.join(data_dir,line[:-1]))
-                signal = add_noise(signal, rate, 1, os.path.join(data_dir,
+                signal_and_noise = add_noise(signal, rate, 1, os.path.join(data_dir,
                     '_background_noise_'), noise_percentage, noise_volume_range)
-                feature, _ = psf.fbank(signal, rate, nfilt = 40,
-                    winfunc = np.hamming)
-                temp_list.append({'feature': feature, 'label': word})
+                if feature == 'fbank':
+                    feat, _ = psf.fbank(signal_and_noise, rate, nfilt = 40,
+                        winfunc = np.hamming)
+                elif feature == 'mfcc':
+                    feat = psf.mfcc(signal_and_noise, rate, nfilt = 40,
+                        winfunc = np.hamming, numcep = 12, appendEnergy = False)
+                elif feature == 'delta':
+                    feat = psf.mfcc(signal_and_noise, rate, nfilt = 40,
+                        winfunc = np.hamming)
+                    feat = np.concatenate((feature, psf.delta(feature, 2)), axis = 1)
+                elif feature == 'deltadelta':
+                    feat = psf.mfcc(signal_and_noise, rate, nfilt = 40,
+                        winfunc = np.hamming)
+                    feat = np.concatenate((feature, psf.delta(feature, 2)), axis = 1)
+                    feat = np.concatenate((feature, psf.delta(feature, 2)), axis = 1)
+                else:
+                    print('besteme')
+                temp_list.append({'feature': feat, 'label': word})
                 break
 
-    searchfile.close()
-
-    X_test = np.zeros((len(temp_list), 99, 40))
-    Y_test = np.zeros( len(temp_list) )
-
-    for i in range(len(X_test)):
-        X_test[i] = temp_list[i]['feature']
-        Y_test[i] = word2index(temp_list[i]['label'])
-
-    del temp_list
-
-    return X_test, Y_test
-
-def load_validation_dataset(data_dir, word_list, noise_percentage,
-                            noise_volume_range):
-    searchfile = open(os.path.join(data_dir,"validation_list.txt"), "r")
+    searchfile.close()"""
+    
     temp_list = []
-    for line in searchfile:
-        for word in word_list:
-            if word in line:
-                rate, signal = load_wav(os.path.join(data_dir,line[:-1]))
-                signal = add_noise(signal, rate, 1, os.path.join(data_dir,
-                    '_background_noise_'), noise_percentage, noise_volume_range)
-                feature, _ = psf.fbank(signal, rate, nfilt = 40,
-                    winfunc = np.hamming)
-                temp_list.append({'feature': feature, 'label': word})
-                break
 
-    searchfile.close()
+    #wav_lists = os.path.join(data_dir, *, '*.wav')
+    for word_l in word_list:
+        #wav_word_list = os.path.join(data_dir, word_l)
+        wav_list = os.path.join(data_dir, word_l, '*.wav')
+        for file in gfile.Glob(wav_list):
+            if which_set(file, validation_percentage, testing_percentage) == 'testing':
+                rate, signal = load_wav(file);
+                signal_and_noise = add_noise(signal, rate, 1,
+                    os.path.join(data_dir,'_background_noise_'),
+                    noise_percentage, noise_volume_range)
+                if feature == 'fbank':
+                    feat, _ = psf.fbank(signal_and_noise, rate, nfilt = 40,
+                        winfunc = np.hamming)
+                elif feature == 'mfcc':
+                    feat = psf.mfcc(signal_and_noise, rate, nfilt = 40,
+                        winfunc = np.hamming, numcep = 12, appendEnergy = False)
+                elif feature == 'delta':
+                    feat = psf.mfcc(signal_and_noise, rate, nfilt = 40,
+                        winfunc = np.hamming)
+                    feat = np.concatenate((feature, psf.delta(feature, 2)), axis = 1)
+                elif feature == 'deltadelta':
+                    feat = psf.mfcc(signal_and_noise, rate, nfilt = 40,
+                        winfunc = np.hamming)
+                    feat = np.concatenate((feature, psf.delta(feature, 2)), axis = 1)
+                    feat = np.concatenate((feature, psf.delta(feature, 2)), axis = 1)
+                else:
+                    print('besteme')
+                del signal, signal_and_noise
+                temp_list.append({'feature': feat, 'label': word_l})
 
-    X_validation = np.zeros((len(temp_list), 99, 40))
-    Y_validation = np.zeros( len(temp_list) )
 
-    for i in range(len(X_validation)):
-        X_validation[i] = temp_list[i]['feature']
-        Y_validation[i] = word2index(temp_list[i]['label'])
+    X = np.zeros((len(temp_list), 99, 12))
+    Y = np.zeros( len(temp_list) )
+
+    for i in range(len(temp_list)):
+        X[i] = temp_list[i]['feature']
+        Y[i] = word2index(temp_list[i]['label'])
 
     del temp_list
 
-    return X_validation, Y_validation
+    return X, Y
+
+def load_validation_dataset(data_dir, word_list, feature, noise_percentage,
+                            noise_volume_range,validation_percentage,
+                            testing_percentage):
+    """ Carico il data set e lo salvo dopo avelo modificato un po perche
+    altrimenti is troppo bello cosi lo sporco un p
+
+    Ogni dato a viene caricato"""
+    temp_list = []
+
+    #wav_lists = os.path.join(data_dir, *, '*.wav')
+    for word_l in word_list:
+        #wav_word_list = os.path.join(data_dir, word_l)
+        wav_list = os.path.join(data_dir, word_l, '*.wav')
+        for file in gfile.Glob(wav_list):
+            if which_set(file, validation_percentage, testing_percentage) == 'validation':
+                rate, signal = load_wav(file);
+                signal_and_noise = add_noise(signal, rate, 1,
+                    os.path.join(data_dir,'_background_noise_'),
+                    noise_percentage, noise_volume_range)
+                if feature == 'fbank':
+                    feat, _ = psf.fbank(signal_and_noise, rate, nfilt = 40,
+                        winfunc = np.hamming)
+                elif feature == 'mfcc':
+                    feat = psf.mfcc(signal_and_noise, rate, nfilt = 40,
+                        winfunc = np.hamming, numcep = 12, appendEnergy = False)
+                elif feature == 'delta':
+                    feat = psf.mfcc(signal_and_noise, rate, nfilt = 40,
+                        winfunc = np.hamming)
+                    feat = np.concatenate((feature, psf.delta(feature, 2)), axis = 1)
+                elif feature == 'deltadelta':
+                    feat = psf.mfcc(signal_and_noise, rate, nfilt = 40,
+                        winfunc = np.hamming)
+                    feat = np.concatenate((feature, psf.delta(feature, 2)), axis = 1)
+                    feat = np.concatenate((feature, psf.delta(feature, 2)), axis = 1)
+                else:
+                    print('besteme')
+                del signal, signal_and_noise
+                temp_list.append({'feature': feat, 'label': word_l})
+
+    X = np.zeros((len(temp_list), 99, 12))
+    Y = np.zeros( len(temp_list) )
+
+    for i in range(len(temp_list)):
+        X[i] = temp_list[i]['feature']
+        Y[i] = word2index(temp_list[i]['label'])
+
+    del temp_list
+
+    return X, Y
 
 def add_noise(signal, rate, len_sec, noise_dir, noise_percentage,
               noise_volume_range = 1):
