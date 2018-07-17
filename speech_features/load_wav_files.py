@@ -14,7 +14,6 @@ from tensorflow.python.platform import gfile
 from tensorflow.python.util import compat
 
 MAX_NUM_WAVS_PER_CLASS = 2**27 - 1  # ~134M
-print(MAX_NUM_WAVS_PER_CLASS)
 
 random.seed(1181349 + 1179018)
 
@@ -184,7 +183,7 @@ def load_test_dataset(data_dir, word_list, feature, noise_percentage,
     altrimenti is troppo bello cosi lo sporco un p
 
     Ogni dato a viene caricato
-    
+
     searchfile = open(os.path.join(data_dir,"testing_list.txt"), "r")
     temp_list = []
     for line in searchfile:
@@ -214,7 +213,7 @@ def load_test_dataset(data_dir, word_list, feature, noise_percentage,
                 break
 
     searchfile.close()"""
-    
+
     temp_list = []
 
     #wav_lists = os.path.join(data_dir, *, '*.wav')
