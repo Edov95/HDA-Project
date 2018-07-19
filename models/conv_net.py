@@ -15,21 +15,21 @@ def convolutional_network_2_layer(n_kws, feats_shape, optimizer = None, learning
                      use_bias = True, bias_initializer = 'random_uniform',
                      kernel_initializer = 'normal'))
 
-    model.add(MaxPooling2D((2,2) strides = (2, 2)))
+    model.add(MaxPooling2D((2,2), strides = (2, 2)))
     model.add(Dropout(0.5))
     model.add(Conv2D(32, (3,3), strides=(1, 1),  padding='valid',
                      data_format='channels_last', dilation_rate=(1, 1),
                      activation='relu', use_bias=True,
                      kernel_initializer='normal',
                      bias_initializer='random_uniform'))
-    model.add(MaxPooling2D((2,2) strides = (1, 1)))
+    model.add(MaxPooling2D((2,2), strides = (1, 1)))
     model.add(Conv2D(64, (3,3), strides=(1, 1),  padding='valid',
                      data_format='channels_last', dilation_rate=(1, 1),
                      activation='relu', use_bias=True,
                      kernel_initializer='normal',
                      bias_initializer='random_uniform'))
 
-    model.add(MaxPooling2D((2,2) strides = (1, 1)))                 
+    model.add(MaxPooling2D((2,2), strides = (1, 1)))                 
     model.add(Flatten())
     model.add(Dense(n_kws, activation='softmax'))
 
